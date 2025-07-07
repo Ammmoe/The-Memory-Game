@@ -26,6 +26,7 @@ class PlayActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
     private lateinit var timerHandler: Handler
     private lateinit var timerRunnable: Runnable
     private var elapsedMillis: Long = 0L
+    private var gameWon: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,23 +98,28 @@ class PlayActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
         }
 
         // Stop timer and go to leaderboard activity if game is won
-        if (adapter.revealedPositions.size == adapter.count) {
+        if (adapter.revealedPositions.size == adapter.count && !gameWon) {
             timerHandler.removeCallbacks(timerRunnable)
+            // Set game won to true so that clicks are not registered anymore
+            gameWon = true
             // Save completion time in database
             val url = "http://10.0.2.2:5187/Home/SaveCompletionTime?completionTime=$elapsedMillis"
-            Log.d("Backend Call Link: ", url);
+            Log.d("Backend Call Link: ", url)
             Thread {
                 try {
                     val saveResult: String = URL(url).openStream().bufferedReader().use { it.readText() }
                     runOnUiThread {
                         if (saveResult == "saved") {
-                            Toast.makeText(this, "Completion time saved!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(applicationContext, "Completion time saved!", Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(this, "Error saving completion time.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(applicationContext, "Error saving completion time.", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    runOnUiThread {
+                        Toast.makeText(applicationContext, e.message, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }.start()
 
@@ -123,7 +129,7 @@ class PlayActivity : AppCompatActivity(), AdapterView.OnItemClickListener {
                 intent.putExtra("completion_time", elapsedMillis)
                 startActivity(intent)
                 finish()
-            }, 800)
+            }, 1000)
         }
     }
 }
